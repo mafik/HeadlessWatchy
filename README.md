@@ -1,6 +1,6 @@
 # HeadlessWatchy
 
-HeadlessWatchy is a ROM for [Watchy by SQFMI](https://watchy.sqfmi.com/) that makes it usable without the e-paper display. Useful if you dropped yours on a concrete.
+HeadlessWatchy is a ROM for [Watchy by SQFMI](https://watchy.sqfmi.com/) that makes it usable without the e-paper display. Useful if you dropped yours on concrete.
 
 ![Front 1](IMG_20250612_112427836_HDR.jpg "Front 1")
 
