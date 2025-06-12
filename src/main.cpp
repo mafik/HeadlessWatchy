@@ -77,84 +77,167 @@ RTC_DATA_ATTR time_t timer_deadline;
 #define NOTE_GS6 1661
 #define NOTE_A6 1760
 
-// Star Wars Imperial March melody
-void playImperialMarch() {
-  if (kDebug)
-    printf("Playing Star Wars Imperial March (Extended)\n");
+// Structure to hold note and duration information
+struct MusicalNote {
+  int frequency; // Note frequency in Hz (0 = rest)
+  int duration;  // Duration: 1=whole, 2=half, 4=quarter, 8=eighth, 16=sixteenth
+  bool dotted;   // Whether the note is dotted (1.5x duration)
+};
 
-  // Proper Imperial March melody from euphonium arrangement - transposed up 2
-  // octaves Note durations: 4 = quarter note, 8 = eighth note, 2 = half note, 1
-  // = whole note
-  int melody[] = {
-      // Line 1: G3 G3 G3 Eb3 Bb3
-      NOTE_G5, NOTE_G5, NOTE_G5, NOTE_DS5, NOTE_AS5,
-      // Line 2: G3 Eb3 Bb3 G3
-      NOTE_G5, NOTE_DS5, NOTE_AS5, NOTE_G5,
-      // Line 3: D4 D4 D4 Eb4 Bb3
-      NOTE_D6, NOTE_D6, NOTE_D6, NOTE_DS6, NOTE_AS5,
-      // Line 4: Gb3 Eb3 Bb3 G3
-      NOTE_FS5, NOTE_DS5, NOTE_AS5, NOTE_G5,
-      // Line 5: G4 G3 G3 G4 Gb4 F4
-      NOTE_G6, NOTE_G5, NOTE_G5, NOTE_G6, NOTE_FS6, NOTE_F6,
-      // Line 6: E4 Eb4 E4 Ab3 Db4 C4 B3
-      NOTE_E6, NOTE_DS6, NOTE_E6, NOTE_GS5, NOTE_CS6, NOTE_C6, NOTE_B5,
-      // Line 7: Bb3 A3 Bb3 Eb3 Gb3 Eb3 Gb3
-      NOTE_AS5, NOTE_A5, NOTE_AS5, NOTE_DS5, NOTE_FS5, NOTE_DS5, NOTE_FS5,
-      // Line 8: Bb3 G3 Bb3 D4
-      NOTE_AS5, NOTE_G5, NOTE_AS5, NOTE_D6,
-      // Line 9: G4 G3 G3 G4 Gb4 F4
-      NOTE_G6, NOTE_G5, NOTE_G5, NOTE_G6, NOTE_FS6, NOTE_F6,
-      // Line 10: E4 Eb4 E4 Ab3 Db4 C4 B3
-      NOTE_E6, NOTE_DS6, NOTE_E6, NOTE_GS5, NOTE_CS6, NOTE_C6, NOTE_B5,
-      // Line 11: Bb3 A3 Bb3 Eb3 Gb3 Eb3 Bb3
-      NOTE_AS5, NOTE_A5, NOTE_AS5, NOTE_DS5, NOTE_FS5, NOTE_DS5, NOTE_AS5,
-      // Line 12: G3 Eb3 Bb3 G3
-      NOTE_G5, NOTE_DS5, NOTE_AS5, NOTE_G5};
+// Play a single musical note with proper timing
+void playNote(int frequency, int baseDuration, bool dotted = false) {
+  // Base timing: quarter note = 565ms (106 BPM as marked in sheet music)
+  int quarterNoteMs = 565;
+  int noteDuration = quarterNoteMs * 4 / baseDuration;
 
-  int noteDurations[] = {// Line 1: Strong opening phrase
-                         4, 4, 4, 8, 8,
-                         // Line 2: Continuation
-                         4, 8, 8, 2,
-                         // Line 3: Higher phrase
-                         4, 4, 4, 8, 8,
-                         // Line 4: Resolution
-                         4, 8, 8, 2,
-                         // Line 5: Ascending dramatic part
-                         4, 8, 8, 4, 8, 8,
-                         // Line 6: Complex melodic line
-                         8, 8, 8, 8, 4, 8, 8,
-                         // Line 7: Rapid sequence
-                         8, 8, 8, 8, 8, 8, 8,
-                         // Line 8: Build up
-                         8, 8, 8, 4,
-                         // Line 9: Repeat of dramatic part
-                         4, 8, 8, 4, 8, 8,
-                         // Line 10: Complex melodic line repeat
-                         8, 8, 8, 8, 4, 8, 8,
-                         // Line 11: Final rapid sequence
-                         8, 8, 8, 8, 8, 8, 8,
-                         // Line 12: Final resolution
-                         4, 8, 8, 2};
+  if (dotted) {
+    noteDuration = noteDuration * 3 / 2; // Dotted notes are 1.5x longer
+  }
 
-  int totalNotes = sizeof(melody) / sizeof(melody[0]);
-
-  for (int thisNote = 0; thisNote < totalNotes; thisNote++) {
-    // Calculate note duration: quarter note = 500ms, eighth note = 250ms, etc.
-    int noteDuration = 2000 / noteDurations[thisNote];
-
-    // Set PWM frequency to the note frequency
-    analogWriteFrequency(melody[thisNote]);
-
-    // Play the note using PWM value 32
+  if (frequency > 0) {
+    // Set PWM frequency and play the note
+    analogWriteFrequency(frequency);
     analogWrite(VIB_MOTOR_PIN, 32);
-    delay(noteDuration);
+    delay(noteDuration * 0.9); // Play note for 90% of duration
 
     // Stop the note
     analogWrite(VIB_MOTOR_PIN, 0);
+    delay(noteDuration * 0.1); // 10% rest between notes
+  } else {
+    // Rest (frequency = 0)
+    analogWrite(VIB_MOTOR_PIN, 0);
+    delay(noteDuration);
+  }
+}
 
-    // Pause between notes (30% of note duration)
-    int pauseBetweenNotes = noteDuration * 0.30;
-    delay(pauseBetweenNotes);
+// Star Wars Imperial March melody - following the exact sheet music timing
+void playImperialMarch() {
+  if (kDebug)
+    printf("Playing Star Wars Imperial March (Sheet Music Accurate)\n");
+
+  // Imperial March melody following the exact sheet music durations
+  // Tempo: Quarter note = 106 BPM as marked on the sheet
+  MusicalNote melody[] = {
+      // Measure 1: G G G Eb-Bb (quarter, quarter, quarter, eighth+eighth,
+      // quarter)
+      {NOTE_G5, 4, true},
+      {NOTE_G5, 4, true},
+      {NOTE_G5, 4, true},
+      {NOTE_DS5, 8, true},
+      {0, 16, false},
+      {NOTE_AS5, 16, false},
+
+      // Measure 2: G Eb-Bb G (eighth+eighth, quarter, half)
+      {NOTE_G5, 4, true},
+      {NOTE_DS5, 8, true},
+      {0, 16, false},
+      {NOTE_AS5, 16, false},
+      {NOTE_G5, 4, false},
+      {0, 4, false}, // rest
+
+      // Measure 3: D D D Eb-Bb (quarter, quarter, quarter, eighth+eighth,
+      // quarter)
+      {NOTE_D6, 4, true},
+      {NOTE_D6, 4, true},
+      {NOTE_D6, 4, true},
+      {NOTE_DS6, 8, true},
+      {0, 16, false},
+      {NOTE_AS5, 16, false},
+
+      // Measure 4: Gb Eb-Bb G (eighth+eighth, quarter, half)
+      {NOTE_FS5, 4, true},
+      {NOTE_DS5, 8, true},
+      {0, 16, false},
+      {NOTE_AS5, 16, false},
+      {NOTE_G5, 4, false},
+      {0, 4, false}, // rest
+
+      // Measure 5: G G-G G Gb-F (sixteenth+sixteenth+eighth, quarter,
+      // eighth+eighth)
+      {NOTE_G6, 4, true},
+      {NOTE_G5, 8, true},
+      {NOTE_G5, 16, false},
+      {NOTE_G6, 4, true},
+      {NOTE_FS6, 8, true},
+      {0, 16, false},
+      {NOTE_F6, 16, false},
+
+      // Measure 6: E Eb-E rest Ab Db-C-B (eighth+eighth+eighth, eighth rest,
+      // eighth, eighth+eighth+eighth)
+      {NOTE_E6, 16, false},
+      {NOTE_DS6, 16, false},
+      {NOTE_E6, 8, true},
+      {0, 8, false}, // rest
+      {NOTE_GS5, 8, true},
+      {NOTE_CS6, 4, true},
+      {NOTE_C6, 8, true},
+      {0, 16, false},
+      {NOTE_B5, 16, false},
+
+      // Measure 7: Bb A-Bb rest Eb Gb-Eb-Gb (eighth+eighth+eighth, eighth rest,
+      // eighth, eighth+eighth+eighth)
+      {NOTE_AS5, 16, false},
+      {NOTE_A5, 16, false},
+      {NOTE_AS5, 8, true},
+      {0, 8, false}, // rest
+      {NOTE_DS5, 8, true},
+      {NOTE_FS5, 4, true},
+      {NOTE_DS5, 8, true},
+      {0, 16, false},
+      {NOTE_FS5, 16, false},
+
+      // Measure 8: Bb G-Bb D (eighth+eighth+eighth, quarter)
+      {NOTE_AS5, 4, true},
+      {NOTE_G5, 8, true},
+      {0, 16, false},
+      {NOTE_AS5, 16, false},
+      {NOTE_D6, 4, false},
+      {0, 4, false},
+
+      // Measure 9: G G-G G Gb-F (repeat of measure 5)
+      {NOTE_G6, 4, true},
+      {NOTE_G5, 8, true},
+      {0, 16, false},
+      {NOTE_G5, 16, false},
+      {NOTE_G6, 4, true},
+      {NOTE_FS6, 8, true},
+      {0, 16, false},
+      {NOTE_F6, 16, false},
+
+      // Measure 10: E Eb-E rest Ab Db-C-B (repeat of measure 6)
+      {NOTE_E6, 16, false},
+      {NOTE_DS6, 16, false},
+      {NOTE_E6, 8, true},
+      {0, 8, false}, // rest
+      {NOTE_GS5, 8, true},
+      {NOTE_CS6, 4, true},
+      {NOTE_C6, 8, true},
+      {0, 16, false},
+      {NOTE_B5, 16, false},
+
+      // Measure 11: Bb A-Bb rest Eb Gb-Eb-Bb (similar to measure 7 but ending
+      // different)
+      {NOTE_AS5, 16, false},
+      {NOTE_A5, 16, false},
+      {NOTE_AS5, 8, true},
+      {0, 8, false}, // rest
+      {NOTE_DS5, 8, true},
+      {NOTE_FS5, 4, true},
+      {NOTE_DS5, 8, true},
+      {0, 16, false},
+      {NOTE_AS5, 16, false},
+
+      // Measure 12: G Eb-Bb G (final resolution)
+      {NOTE_G5, 4, true},
+      {NOTE_DS5, 8, true},
+      {0, 16, false},
+      {NOTE_AS5, 16, false},
+      {NOTE_G5, 4, false}};
+
+  int totalNotes = sizeof(melody) / sizeof(melody[0]);
+
+  for (int i = 0; i < totalNotes; i++) {
+    playNote(melody[i].frequency, melody[i].duration, melody[i].dotted);
   }
 
   // Reset frequency to default
