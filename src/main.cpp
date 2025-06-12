@@ -35,8 +35,22 @@ DS3232RTC RTC(false);
 
 RTC_DATA_ATTR time_t timer_deadline;
 
-// Star Wars Imperial March note frequencies (in Hz) - Transposed up one octave
-// for better vibration motor response
+// Star Wars Imperial March note frequencies (in Hz) - Transposed up 2 octaves
+// for better vibration motor response (euphonium arrangement)
+#define NOTE_G3 196
+#define NOTE_GS3 208
+#define NOTE_A3 220
+#define NOTE_AS3 233
+#define NOTE_B3 247
+#define NOTE_C4 262
+#define NOTE_CS4 277
+#define NOTE_D4 294
+#define NOTE_DS4 311
+#define NOTE_E4 330
+#define NOTE_F4 349
+#define NOTE_FS4 370
+#define NOTE_G4 392
+#define NOTE_GS4 415
 #define NOTE_A4 440
 #define NOTE_AS4 466
 #define NOTE_B4 494
@@ -68,34 +82,59 @@ void playImperialMarch() {
   if (kDebug)
     printf("Playing Star Wars Imperial March (Extended)\n");
 
-  // Extended Imperial March melody - transposed up one octave
-  // Note durations: 4 = quarter note, 8 = eighth note, 2 = half note, 1 = whole
-  // note
+  // Proper Imperial March melody from euphonium arrangement - transposed up 2
+  // octaves Note durations: 4 = quarter note, 8 = eighth note, 2 = half note, 1
+  // = whole note
   int melody[] = {
-      // First phrase: "Dum dum dum, dum-da-dum, dum-da-dum"
-      NOTE_A5, NOTE_A5, NOTE_A5, NOTE_F6, NOTE_C6, NOTE_A5, NOTE_F6, NOTE_C6,
-      NOTE_A5,
-      // Second phrase: "Dum dum dum, dum-da-dum, dum-da-dum" (higher)
-      NOTE_E6, NOTE_E6, NOTE_E6, NOTE_F6, NOTE_C6, NOTE_GS5, NOTE_F6, NOTE_C6,
-      NOTE_A5,
-      // Third phrase: "Dum-da-dum-da-dum-da-dum" (the ascending part)
-      NOTE_A6, NOTE_A5, NOTE_A5, NOTE_A6, NOTE_GS6, NOTE_G6, NOTE_FS6, NOTE_F6,
-      NOTE_FS6,
-      // Fourth phrase: pause and continuation
-      NOTE_AS5, NOTE_DS6, NOTE_D6, NOTE_CS6, NOTE_C6, NOTE_B5, NOTE_C6,
-      // Final phrase: back to the main theme
-      NOTE_F5, NOTE_GS5, NOTE_F6, NOTE_A5, NOTE_C6, NOTE_A5, NOTE_C6, NOTE_E6};
+      // Line 1: G3 G3 G3 Eb3 Bb3
+      NOTE_G5, NOTE_G5, NOTE_G5, NOTE_DS5, NOTE_AS5,
+      // Line 2: G3 Eb3 Bb3 G3
+      NOTE_G5, NOTE_DS5, NOTE_AS5, NOTE_G5,
+      // Line 3: D4 D4 D4 Eb4 Bb3
+      NOTE_D6, NOTE_D6, NOTE_D6, NOTE_DS6, NOTE_AS5,
+      // Line 4: Gb3 Eb3 Bb3 G3
+      NOTE_FS5, NOTE_DS5, NOTE_AS5, NOTE_G5,
+      // Line 5: G4 G3 G3 G4 Gb4 F4
+      NOTE_G6, NOTE_G5, NOTE_G5, NOTE_G6, NOTE_FS6, NOTE_F6,
+      // Line 6: E4 Eb4 E4 Ab3 Db4 C4 B3
+      NOTE_E6, NOTE_DS6, NOTE_E6, NOTE_GS5, NOTE_CS6, NOTE_C6, NOTE_B5,
+      // Line 7: Bb3 A3 Bb3 Eb3 Gb3 Eb3 Gb3
+      NOTE_AS5, NOTE_A5, NOTE_AS5, NOTE_DS5, NOTE_FS5, NOTE_DS5, NOTE_FS5,
+      // Line 8: Bb3 G3 Bb3 D4
+      NOTE_AS5, NOTE_G5, NOTE_AS5, NOTE_D6,
+      // Line 9: G4 G3 G3 G4 Gb4 F4
+      NOTE_G6, NOTE_G5, NOTE_G5, NOTE_G6, NOTE_FS6, NOTE_F6,
+      // Line 10: E4 Eb4 E4 Ab3 Db4 C4 B3
+      NOTE_E6, NOTE_DS6, NOTE_E6, NOTE_GS5, NOTE_CS6, NOTE_C6, NOTE_B5,
+      // Line 11: Bb3 A3 Bb3 Eb3 Gb3 Eb3 Bb3
+      NOTE_AS5, NOTE_A5, NOTE_AS5, NOTE_DS5, NOTE_FS5, NOTE_DS5, NOTE_AS5,
+      // Line 12: G3 Eb3 Bb3 G3
+      NOTE_G5, NOTE_DS5, NOTE_AS5, NOTE_G5};
 
-  int noteDurations[] = {// First phrase
-                         4, 4, 4, 8, 8, 4, 8, 8, 2,
-                         // Second phrase
-                         4, 4, 4, 8, 8, 4, 8, 8, 2,
-                         // Third phrase
-                         4, 8, 8, 4, 8, 8, 8, 8, 8,
-                         // Fourth phrase
-                         8, 4, 8, 8, 8, 8, 8,
-                         // Final phrase
-                         8, 4, 8, 4, 8, 8, 4, 2};
+  int noteDurations[] = {// Line 1: Strong opening phrase
+                         4, 4, 4, 8, 8,
+                         // Line 2: Continuation
+                         4, 8, 8, 2,
+                         // Line 3: Higher phrase
+                         4, 4, 4, 8, 8,
+                         // Line 4: Resolution
+                         4, 8, 8, 2,
+                         // Line 5: Ascending dramatic part
+                         4, 8, 8, 4, 8, 8,
+                         // Line 6: Complex melodic line
+                         8, 8, 8, 8, 4, 8, 8,
+                         // Line 7: Rapid sequence
+                         8, 8, 8, 8, 8, 8, 8,
+                         // Line 8: Build up
+                         8, 8, 8, 4,
+                         // Line 9: Repeat of dramatic part
+                         4, 8, 8, 4, 8, 8,
+                         // Line 10: Complex melodic line repeat
+                         8, 8, 8, 8, 4, 8, 8,
+                         // Line 11: Final rapid sequence
+                         8, 8, 8, 8, 8, 8, 8,
+                         // Line 12: Final resolution
+                         4, 8, 8, 2};
 
   int totalNotes = sizeof(melody) / sizeof(melody[0]);
 
