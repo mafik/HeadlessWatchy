@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "BLE.h"
+#include "esp32-hal.h"
 
 // pins
 #define SDA 21
@@ -33,22 +34,6 @@
 DS3232RTC RTC(false);
 
 RTC_DATA_ATTR time_t timer_deadline;
-
-// Morse code patterns (1 = dot, 2 = dash)
-const uint8_t morseDigits[][5] = {
-  {2, 2, 2, 2, 2}, // 0: -----
-  {1, 2, 2, 2, 2}, // 1: .----
-  {1, 1, 2, 2, 2}, // 2: ..---
-  {1, 1, 1, 2, 2}, // 3: ...--
-  {1, 1, 1, 1, 2}, // 4: ....-
-  {1, 1, 1, 1, 1}, // 5: .....
-  {2, 1, 1, 1, 1}, // 6: -....
-  {2, 2, 1, 1, 1}, // 7: --...
-  {2, 2, 2, 1, 1}, // 8: ---..
-  {2, 2, 2, 2, 1}  // 9: ----.
-};
-
-const uint8_t morsePadding = 0; // padding between characters
 
 void doWiFiUpdate() {
   WiFi.begin(kWiFiSSID, kWiFiPass);
@@ -74,44 +59,39 @@ void doWiFiUpdate() {
   btStop();
 }
 
-// Morse code vibration functions
-void vibDot() {
-  digitalWrite(VIB_MOTOR_PIN, HIGH);
-  delay(50); // short vibration for dot
+int zeroMillis = 50;
+int oneMillis = zeroMillis * 3;
+int separatorMillis = 120;
+
+void vibZero() {
+  digitalWrite(VIB_MOTOR_PIN, 64);
+  delay(zeroMillis); // short vibration for dot
   digitalWrite(VIB_MOTOR_PIN, LOW);
-  delay(50); // pause between elements
+  delay(separatorMillis); // pause between elements
 }
 
-void vibDash() {
+void vibOne() {
   digitalWrite(VIB_MOTOR_PIN, HIGH);
-  delay(150); // long vibration for dash
+  delay(oneMillis); // long vibration for dash
   digitalWrite(VIB_MOTOR_PIN, LOW);
-  delay(50); // pause between elements
+  delay(separatorMillis); // pause between elements
 }
 
-void vibPause() {
-  delay(100); // longer pause between digits
-}
-
-void vibLongPause() {
-  delay(200); // pause between hours and minutes
-}
-
-void vibDigit(uint8_t digit) {
-  if (digit > 9) return;
-
+void vibBinary(int value, int bits) {
   if (kDebug) {
-    printf("Digit: %hhd\n", digit);
+    printf("vibBinary(%d, %d) ", value, bits);
+    for (int i = 0; i < bits; ++i) {
+      printf(((value >> (bits - i - 1)) & 1) ? "-" : ".");
+    }
+    printf("\n");
   }
-
-  for (int i = 0; i < 5; i++) {
-    if (morseDigits[digit][i] == 1) {
-      vibDot();
-    } else if (morseDigits[digit][i] == 2) {
-      vibDash();
+  for (int i = 0; i < bits; ++i) {
+    if ((value >> (bits - i - 1)) & 1) {
+      vibOne();
+    } else {
+      vibZero();
     }
   }
-  vibPause();
 }
 
 void announceHour() {
@@ -122,10 +102,18 @@ void announceHour() {
     printf("Announcing hour: %02d\n", timeinfo->tm_hour);
   }
 
-  if (timeinfo->tm_hour >= 10) {
-    vibDigit(timeinfo->tm_hour / 10);
+  vibBinary(timeinfo->tm_hour, 3);
+}
+
+void announceMinutes() {
+  time_t t = DS3232RTC::get();
+  struct tm *timeinfo = localtime(&t);
+
+  if (kDebug) {
+    printf("Announcing minutes: %02d\n", timeinfo->tm_min);
   }
-  vibDigit(timeinfo->tm_hour % 10);
+
+  vibBinary(timeinfo->tm_min, 6);
 }
 
 void announceTime() {
@@ -136,19 +124,9 @@ void announceTime() {
     printf("Announcing time: %02d:%02d\n", timeinfo->tm_hour, timeinfo->tm_min);
   }
 
-  // Announce hours
-  if (timeinfo->tm_hour >= 10) {
-    vibDigit(timeinfo->tm_hour / 10);
-  }
-  vibDigit(timeinfo->tm_hour % 10);
-
-  vibLongPause();
-
-  // Announce minutes
-  if (timeinfo->tm_min >= 10) {
-    vibDigit(timeinfo->tm_min / 10);
-  }
-  vibDigit(timeinfo->tm_min % 10);
+  vibBinary(timeinfo->tm_hour, 3);
+  delay(separatorMillis * 3);
+  vibBinary(timeinfo->tm_min, 6);
 }
 
 // two short vibrations with decreasing speed
@@ -200,7 +178,7 @@ void bluetoothApp() {
       break;
     }
     if (digitalRead(MENU_BTN_PIN)) {
-      vibDot();
+      vibZero();
       break;
     }
     if (ble.notified()) {
@@ -234,13 +212,16 @@ void setup() {
   wakeup_reason = esp_sleep_get_wakeup_cause(); // get wake up reason
 
   pinMode(VIB_MOTOR_PIN, OUTPUT);
+  analogWriteResolution(8);
+  analogWriteFrequency(1000);
 
   // Start vibration as early as possible to improve button responsiveness
   uint64_t wakeup_reason_ext1;
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT1) {
     wakeup_reason_ext1 = esp_sleep_get_ext1_wakeup_status();
-    if (wakeup_reason_ext1 & BACK_BTN_MASK) {
-      // Time button uses vibrations - don't do the regular vibration pattern in this case
+    if (wakeup_reason_ext1 & (BACK_BTN_MASK | UP_BTN_MASK)) {
+      // Time button uses vibrations - don't do the regular vibration pattern in
+      // this case
     } else {
       digitalWrite(VIB_MOTOR_PIN, HIGH);
       delay(50);
@@ -267,7 +248,14 @@ void setup() {
         vibGood();
         stopTimer();
       } else {
+        int level = timer_deadline - RTC.get() + 1;
+        level *= 100;
+        if (level > 15000) {
+          level = 15000;
+        }
+        analogWriteFrequency(level);
         vibTick();
+        analogWriteFrequency(1000);
       }
     }
     if (RTC.alarm(DS3232RTC::ALARM_2)) {
@@ -297,8 +285,10 @@ void setup() {
     } else if (wakeup_reason_ext1 & UP_BTN_MASK) {
       if (timer_deadline) {
         timer_deadline += 300;
-        debounce(UP_BTN_PIN);
+      } else {
+        announceMinutes();
       }
+      debounce(UP_BTN_PIN);
     }
     break;
   default: // reset

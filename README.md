@@ -22,8 +22,8 @@ Features:
 
 * Bluetooth triggering of Tasker task on a phone
 * WiFi time synchronization on startup
-* Current time (hour and minutes) vibrated in morse code on button press
-* Current hour vibrated in morse code every hour
+* Current time (hour and minutes) vibrated on button press
+* Current hour vibrated every hour
 * Timer with buttons for +1 and +5 minutes
 
 Pull requests are welcome!
@@ -32,14 +32,14 @@ Pull requests are welcome!
 
 Main Screen:
 
-* Upper Left Button => Vibrate current time in morse code
-* Upper Right Button => Unused
+* Upper Left Button => Vibrate current hours & minutes
+* Upper Right Button => Vibrate current minutes
 * Lower Left Button => Trigger Tasker task over bluetooth
 * Lower Right Button => Start 1-minute countdown
 
 Timer:
 
-* Upper Left Button => Vibrate current time in morse code
+* Upper Left Button => Vibrate current hours & minutes
 * Upper Right Button => Add 5 minutes to the countdown
 * Lower Left Button => Go to Main Screen
 * Lower Right Button => Add 1 minute to the countdown
