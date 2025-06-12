@@ -35,6 +35,96 @@ DS3232RTC RTC(false);
 
 RTC_DATA_ATTR time_t timer_deadline;
 
+// Star Wars Imperial March note frequencies (in Hz) - Transposed up one octave
+// for better vibration motor response
+#define NOTE_A4 440
+#define NOTE_AS4 466
+#define NOTE_B4 494
+#define NOTE_C5 523
+#define NOTE_CS5 554
+#define NOTE_D5 587
+#define NOTE_DS5 622
+#define NOTE_E5 659
+#define NOTE_F5 698
+#define NOTE_FS5 740
+#define NOTE_G5 784
+#define NOTE_GS5 831
+#define NOTE_A5 880
+#define NOTE_AS5 932
+#define NOTE_B5 988
+#define NOTE_C6 1047
+#define NOTE_CS6 1109
+#define NOTE_D6 1175
+#define NOTE_DS6 1245
+#define NOTE_E6 1319
+#define NOTE_F6 1397
+#define NOTE_FS6 1480
+#define NOTE_G6 1568
+#define NOTE_GS6 1661
+#define NOTE_A6 1760
+
+// Star Wars Imperial March melody
+void playImperialMarch() {
+  if (kDebug)
+    printf("Playing Star Wars Imperial March (Extended)\n");
+
+  // Extended Imperial March melody - transposed up one octave
+  // Note durations: 4 = quarter note, 8 = eighth note, 2 = half note, 1 = whole
+  // note
+  int melody[] = {
+      // First phrase: "Dum dum dum, dum-da-dum, dum-da-dum"
+      NOTE_A5, NOTE_A5, NOTE_A5, NOTE_F6, NOTE_C6, NOTE_A5, NOTE_F6, NOTE_C6,
+      NOTE_A5,
+      // Second phrase: "Dum dum dum, dum-da-dum, dum-da-dum" (higher)
+      NOTE_E6, NOTE_E6, NOTE_E6, NOTE_F6, NOTE_C6, NOTE_GS5, NOTE_F6, NOTE_C6,
+      NOTE_A5,
+      // Third phrase: "Dum-da-dum-da-dum-da-dum" (the ascending part)
+      NOTE_A6, NOTE_A5, NOTE_A5, NOTE_A6, NOTE_GS6, NOTE_G6, NOTE_FS6, NOTE_F6,
+      NOTE_FS6,
+      // Fourth phrase: pause and continuation
+      NOTE_AS5, NOTE_DS6, NOTE_D6, NOTE_CS6, NOTE_C6, NOTE_B5, NOTE_C6,
+      // Final phrase: back to the main theme
+      NOTE_F5, NOTE_GS5, NOTE_F6, NOTE_A5, NOTE_C6, NOTE_A5, NOTE_C6, NOTE_E6};
+
+  int noteDurations[] = {// First phrase
+                         4, 4, 4, 8, 8, 4, 8, 8, 2,
+                         // Second phrase
+                         4, 4, 4, 8, 8, 4, 8, 8, 2,
+                         // Third phrase
+                         4, 8, 8, 4, 8, 8, 8, 8, 8,
+                         // Fourth phrase
+                         8, 4, 8, 8, 8, 8, 8,
+                         // Final phrase
+                         8, 4, 8, 4, 8, 8, 4, 2};
+
+  int totalNotes = sizeof(melody) / sizeof(melody[0]);
+
+  for (int thisNote = 0; thisNote < totalNotes; thisNote++) {
+    // Calculate note duration: quarter note = 500ms, eighth note = 250ms, etc.
+    int noteDuration = 2000 / noteDurations[thisNote];
+
+    // Set PWM frequency to the note frequency
+    analogWriteFrequency(melody[thisNote]);
+
+    // Play the note using PWM value 32
+    analogWrite(VIB_MOTOR_PIN, 32);
+    delay(noteDuration);
+
+    // Stop the note
+    analogWrite(VIB_MOTOR_PIN, 0);
+
+    // Pause between notes (30% of note duration)
+    int pauseBetweenNotes = noteDuration * 0.30;
+    delay(pauseBetweenNotes);
+  }
+
+  // Reset frequency to default
+  analogWriteFrequency(1000);
+
+  if (kDebug)
+    printf("Imperial March complete\n");
+}
+
 void doWiFiUpdate() {
   WiFi.begin(kWiFiSSID, kWiFiPass);
   if (WiFi.waitForConnectResult() == WL_CONNECTED) {
@@ -301,6 +391,9 @@ void setup() {
     RTC.setAlarm(DS3232RTC::ALM2_MATCH_MINUTES, 0, 0, 0,
                  0); // alarm wakes up Watchy every hour
     RTC.alarmInterrupt(DS3232RTC::ALARM_2, true); // enable alarm interrupt
+
+    // Play Star Wars Imperial March on boot
+    playImperialMarch();
     break;
   }
 
