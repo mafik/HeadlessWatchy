@@ -271,27 +271,32 @@ void doWiFiUpdate() {
   btStop();
 }
 
+enum VibrationSpeed {
+  NORMAL_SPEED = 1,
+  SLOW_SPEED = 2
+};
+
 int zeroMillis = 50;
 int oneMillis = zeroMillis * 3;
 int separatorMillis = 150;
 
-void vibZero() {
+void vibZero(VibrationSpeed speed = NORMAL_SPEED) {
   digitalWrite(VIB_MOTOR_PIN, 64);
-  delay(zeroMillis); // short vibration for dot
+  delay(zeroMillis * speed); // short vibration for dot
   digitalWrite(VIB_MOTOR_PIN, LOW);
-  delay(separatorMillis); // pause between elements
+  delay(separatorMillis * speed); // pause between elements
 }
 
-void vibOne() {
+void vibOne(VibrationSpeed speed = NORMAL_SPEED) {
   digitalWrite(VIB_MOTOR_PIN, HIGH);
-  delay(oneMillis); // long vibration for dash
+  delay(oneMillis * speed); // long vibration for dash
   digitalWrite(VIB_MOTOR_PIN, LOW);
-  delay(separatorMillis); // pause between elements
+  delay(separatorMillis * speed); // pause between elements
 }
 
-void vibBinary(int value, int bits) {
+void vibBinary(int value, int bits, VibrationSpeed speed = NORMAL_SPEED) {
   if (kDebug) {
-    printf("vibBinary(%d, %d) ", value, bits);
+    printf("vibBinary(%d, %d, %s) ", value, bits, speed == SLOW_SPEED ? "slow" : "normal");
     for (int i = 0; i < bits; ++i) {
       printf(((value >> (bits - i - 1)) & 1) ? "-" : ".");
     }
@@ -299,9 +304,51 @@ void vibBinary(int value, int bits) {
   }
   for (int i = 0; i < bits; ++i) {
     if ((value >> (bits - i - 1)) & 1) {
-      vibOne();
+      vibOne(speed);
     } else {
-      vibZero();
+      vibZero(speed);
+    }
+  }
+}
+
+void vibMinutesQuarterHour(int minutes, VibrationSpeed speed = NORMAL_SPEED) {
+  // Split minutes into quarter-hour (0-3) and offset within quarter (0-14)
+  int quarter = minutes / 15;        // 0, 1, 2, or 3
+  int offset = minutes % 15;         // 0-14 minutes within the quarter
+  
+  if (kDebug) {
+    printf("vibMinutesQuarterHour(%d, %s) quarter=%d offset=%d ", 
+           minutes, speed == SLOW_SPEED ? "slow" : "normal", quarter, offset);
+    // Show quarter pattern (2 bits)
+    for (int i = 0; i < 2; ++i) {
+      printf(((quarter >> (1 - i)) & 1) ? "-" : ".");
+    }
+    printf(" ");
+    // Show offset pattern (4 bits)
+    for (int i = 0; i < 4; ++i) {
+      printf(((offset >> (3 - i)) & 1) ? "-" : ".");
+    }
+    printf("\n");
+  }
+  
+  // Vibrate quarter-hour (2 bits)
+  for (int i = 0; i < 2; ++i) {
+    if ((quarter >> (1 - i)) & 1) {
+      vibOne(speed);
+    } else {
+      vibZero(speed);
+    }
+  }
+  
+  // Longer pause between quarter and offset
+  delay(separatorMillis * speed * 3);
+  
+  // Vibrate offset within quarter (4 bits)
+  for (int i = 0; i < 4; ++i) {
+    if ((offset >> (3 - i)) & 1) {
+      vibOne(speed);
+    } else {
+      vibZero(speed);
     }
   }
 }
@@ -314,7 +361,7 @@ void announceHour() {
     printf("Announcing hour: %02d\n", timeinfo->tm_hour);
   }
 
-  vibBinary(timeinfo->tm_hour, 3);
+  vibBinary(timeinfo->tm_hour, 3, SLOW_SPEED);
 }
 
 void announceMinutes() {
@@ -325,7 +372,7 @@ void announceMinutes() {
     printf("Announcing minutes: %02d\n", timeinfo->tm_min);
   }
 
-  vibBinary(timeinfo->tm_min, 6);
+  vibMinutesQuarterHour(timeinfo->tm_min);
 }
 
 void announceTime() {
@@ -338,7 +385,7 @@ void announceTime() {
 
   vibBinary(timeinfo->tm_hour, 3);
   delay(separatorMillis * 3);
-  vibBinary(timeinfo->tm_min, 6);
+  vibMinutesQuarterHour(timeinfo->tm_min);
 }
 
 // two short vibrations with decreasing speed

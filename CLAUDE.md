@@ -15,6 +15,9 @@ The watch communicates time through vibration patterns and can trigger Tasker ta
 
 ### ESP32 Firmware
 ```bash
+# Activate virtual environment first
+source .venv/bin/activate
+
 # Build and upload firmware to Watchy
 make
 
@@ -24,6 +27,9 @@ pio run --target upload --target monitor
 # Build only (no upload)
 pio run
 ```
+
+### Testing Changes
+Always test firmware changes by flashing them to the connected Watchy device using the commands above.
 
 ### Android App
 ```bash
