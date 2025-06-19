@@ -97,7 +97,7 @@ void playNote(int frequency, int baseDuration, bool dotted = false) {
   if (frequency > 0) {
     // Set PWM frequency and play the note
     analogWriteFrequency(frequency);
-    analogWrite(VIB_MOTOR_PIN, 32);
+    analogWrite(VIB_MOTOR_PIN, 24);
     delay(noteDuration * 0.9); // Play note for 90% of duration
 
     // Stop the note
@@ -273,7 +273,7 @@ void doWiFiUpdate() {
 
 int zeroMillis = 50;
 int oneMillis = zeroMillis * 3;
-int separatorMillis = 120;
+int separatorMillis = 150;
 
 void vibZero() {
   digitalWrite(VIB_MOTOR_PIN, 64);
@@ -363,7 +363,7 @@ void vibBad() {
 
 // one subtle vibration
 void vibTick() {
-  analogWrite(VIB_MOTOR_PIN, 32);
+  analogWrite(VIB_MOTOR_PIN, 24);
   delay(50);
   analogWrite(VIB_MOTOR_PIN, 0);
 }
