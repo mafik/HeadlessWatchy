@@ -519,6 +519,15 @@ void setup() {
     }
     if (RTC.alarm(DS3232RTC::ALARM_2)) {
       announceHour();
+      
+      // Check if it's 3am for daily WiFi sync
+      time_t t = DS3232RTC::get();
+      struct tm *timeinfo = localtime(&t);
+      if (timeinfo->tm_hour == 3) {
+        if (kDebug)
+          printf("3am WiFi sync triggered\n");
+        doWiFiUpdate();
+      }
     }
     break;
   case ESP_SLEEP_WAKEUP_EXT1: // button Press
@@ -539,8 +548,8 @@ void setup() {
       startTimer();
       debounce(DOWN_BTN_PIN);
     } else if (wakeup_reason_ext1 & BACK_BTN_MASK) {
-      // BACK button pressed - announce time in morse code
-      announceTime();
+      // BACK button pressed - announce hour only
+      announceHour();
     } else if (wakeup_reason_ext1 & UP_BTN_MASK) {
       if (timer_deadline) {
         timer_deadline += 300;
